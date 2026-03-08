@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MobileTrack</string>
+    <string name="accessibility_service_label">MobileTrack Screen Monitor</string>
+    <string name="accessibility_service_description">MobileTrack uses accessibility to detect which app is in the foreground, monitor scroll behavior on addictive apps, and block apps that exceed your daily limit. No data is sent outside your device.</string>
+</resources>

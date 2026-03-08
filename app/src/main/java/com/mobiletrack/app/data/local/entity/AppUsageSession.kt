@@ -1,0 +1,15 @@
+package com.mobiletrack.app.data.local.entity
+
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+
+@Entity(tableName = "app_usage_sessions")
+data class AppUsageSession(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val packageName: String,
+    val appName: String,
+    val date: String,           // yyyy-MM-dd
+    val totalMinutes: Int,
+    val openCount: Int,
+    val updatedAt: Long = System.currentTimeMillis()
+)
