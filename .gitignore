@@ -12,9 +12,10 @@ local.properties
 
 # Kotlin
 *.class
-*.jar
 *.war
 *.aar
+# Keep gradle wrapper jar
+!gradle/wrapper/gradle-wrapper.jar
 
 # App-specific
 app/build/
