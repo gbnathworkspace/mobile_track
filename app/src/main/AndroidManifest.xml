@@ -12,6 +12,13 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
+
     <application
         android:name=".MobileTrackApp"
         android:allowBackup="false"
@@ -32,11 +39,43 @@
             </intent-filter>
         </activity>
 
+        <!-- Home Launcher Activity -->
+        <activity
+            android:name=".presentation.launcher.LauncherActivity"
+            android:exported="true"
+            android:theme="@style/Theme.MobileTrack"
+            android:screenOrientation="portrait">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.HOME" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <!-- App Blocked / Limit Reached Screen -->
+        <activity
+            android:name=".presentation.blocked.AppBlockedActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:theme="@style/Theme.MobileTrack" />
+
         <!-- Unlock Prompt Overlay Activity -->
         <activity
             android:name=".presentation.unlock.UnlockPromptActivity"
             android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
             android:showOnLockScreen="true"
+            android:taskAffinity=""
+            android:theme="@style/Theme.MobileTrack.Overlay" />
+
+        <activity
+            android:name=".presentation.unlock.PurposeAppLauncherActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:showOnLockScreen="true"
+            android:taskAffinity=""
             android:theme="@style/Theme.MobileTrack.Overlay" />
 
         <!-- Foreground Tracking Service -->

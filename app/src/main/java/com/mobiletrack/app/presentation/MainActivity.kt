@@ -36,9 +36,13 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             MobileTrackTheme {
-                val onboardingComplete by viewModel.onboardingComplete.collectAsStateWithLifecycle(false)
-                val startDestination = if (onboardingComplete) Screen.Dashboard.route else Screen.Onboarding.route
+                val onboardingComplete by viewModel.onboardingComplete.collectAsStateWithLifecycle(null)
                 val navController = rememberNavController()
+
+                // Wait until the preference is loaded before rendering NavHost
+                if (onboardingComplete == null) return@MobileTrackTheme
+
+                val startDestination = if (onboardingComplete == true) Screen.Dashboard.route else Screen.Onboarding.route
 
                 val bottomNavItems = listOf(
                     BottomNavItem(Screen.Dashboard, Icons.Default.Home, "Dashboard"),
@@ -64,7 +68,7 @@ class MainActivity : ComponentActivity() {
                                         } == true,
                                         onClick = {
                                             navController.navigate(item.screen.route) {
-                                                popUpTo(navController.graph.findStartDestination().id) {
+                                                popUpTo(Screen.Dashboard.route) {
                                                     saveState = true
                                                 }
                                                 launchSingleTop = true
@@ -77,10 +81,14 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 ) { padding ->
-                    NavGraph(
-                        navController = navController,
-                        startDestination = startDestination
-                    )
+                    androidx.compose.foundation.layout.Box(
+                        modifier = Modifier.padding(padding)
+                    ) {
+                        NavGraph(
+                            navController = navController,
+                            startDestination = startDestination
+                        )
+                    }
                 }
             }
         }

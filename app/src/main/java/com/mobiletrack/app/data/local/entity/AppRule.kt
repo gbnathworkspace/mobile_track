@@ -8,6 +8,7 @@ data class AppRule(
     @PrimaryKey val packageName: String,
     val appName: String,
     val dailyLimitMinutes: Int = 0,   // 0 = no limit
+    val dailyScrollLimit: Int = 0,    // 0 = no scroll limit
     val isBlocked: Boolean = false,
     val blockedDuringFocus: Boolean = false
 )

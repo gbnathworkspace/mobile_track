@@ -1,6 +1,7 @@
 package com.mobiletrack.app.service
 
 import android.app.usage.UsageStatsManager
+import android.app.usage.UsageEvents
 import android.content.Context
 import android.content.pm.PackageManager
 import com.mobiletrack.app.data.local.dao.AppUsageDao
@@ -32,32 +33,77 @@ class UsageTracker @Inject constructor(
         val startMs = calendar.timeInMillis
         val endMs = System.currentTimeMillis()
 
-        val stats = usageStatsManager.queryUsageStats(
-            UsageStatsManager.INTERVAL_DAILY, startMs, endMs
-        )
+        val usageByPackage = aggregateForegroundUsage(startMs, endMs)
 
-        stats
-            .filter { it.totalTimeInForeground > 0 }
-            .forEach { stat ->
+        usageByPackage
+            .filterValues { it > 0L }
+            .filterKeys { it != context.packageName }
+            .forEach { (packageName, foregroundMs) ->
                 val appName = runCatching {
                     packageManager.getApplicationLabel(
-                        packageManager.getApplicationInfo(stat.packageName, 0)
+                        packageManager.getApplicationInfo(packageName, 0)
                     ).toString()
-                }.getOrDefault(stat.packageName)
+                }.getOrDefault(packageName)
 
-                val minutes = (stat.totalTimeInForeground / 60_000).toInt()
+                val minutes = (foregroundMs / 60_000).toInt()
                 if (minutes > 0) {
-                    appUsageDao.upsert(
+                    val now = System.currentTimeMillis()
+                    // Insert a new row only if none exists for today (openCount starts at 0,
+                    // AccessibilityService increments it on each window-focus event).
+                    // If the row already exists, IGNORE leaves openCount untouched.
+                    appUsageDao.insertIfAbsent(
                         AppUsageSession(
-                            packageName = stat.packageName,
+                            packageName = packageName,
                             appName = appName,
                             date = today,
                             totalMinutes = minutes,
-                            openCount = 1 // UsageStats doesn't give open count directly; refined via AccessibilityService
+                            openCount = 0,
+                            updatedAt = now
                         )
+                    )
+                    // Always update the time/name fields without touching openCount or scrolls.
+                    appUsageDao.updateUsageStats(
+                        pkg = packageName,
+                        appName = appName,
+                        date = today,
+                        minutes = minutes,
+                        updatedAt = now
                     )
                 }
             }
+    }
+
+    private fun aggregateForegroundUsage(startMs: Long, endMs: Long): Map<String, Long> {
+        val totals = mutableMapOf<String, Long>()
+        val activeStarts = mutableMapOf<String, Long>()
+        val events = usageStatsManager.queryEvents(startMs, endMs)
+        val event = UsageEvents.Event()
+
+        while (events.hasNextEvent()) {
+            events.getNextEvent(event)
+            val packageName = event.packageName ?: continue
+            if (packageName == context.packageName) continue
+            when (event.eventType) {
+                UsageEvents.Event.ACTIVITY_RESUMED,
+                UsageEvents.Event.MOVE_TO_FOREGROUND -> {
+                    activeStarts[packageName] = event.timeStamp
+                }
+
+                UsageEvents.Event.ACTIVITY_PAUSED,
+                UsageEvents.Event.MOVE_TO_BACKGROUND -> {
+                    val startedAt = activeStarts.remove(packageName) ?: continue
+                    val duration = (event.timeStamp - startedAt).coerceAtLeast(0L)
+                    totals[packageName] = (totals[packageName] ?: 0L) + duration
+                }
+            }
+        }
+
+        activeStarts.forEach { (packageName, startedAt) ->
+            val duration = (endMs - startedAt).coerceAtLeast(0L)
+            totals[packageName] = (totals[packageName] ?: 0L) + duration
+        }
+
+        return totals
     }
 
     fun getCurrentForegroundApp(): String? {

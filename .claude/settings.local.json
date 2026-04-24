@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(where gradle)",
+      "Bash(where studio64)",
+      "Read(//c/Program Files/Android/Android Studio/bin/**)",
+      "Bash(curl -L \"https://raw.githubusercontent.com/gradle/gradle/v8.7.0/gradle/wrapper/gradle-wrapper.jar\" -o \"c:/Users/91994/Projects/Current/mobile_track/gradle/wrapper/gradle-wrapper.jar\")",
+      "Bash(powershell.exe -Command \"[Environment]::SetEnvironmentVariable\\(''Path'', [Environment]::GetEnvironmentVariable\\(''Path'',''User''\\) + '';C:\\\\Users\\\\91994\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\platform-tools'', ''User''\\)\")",
+      "Bash(powershell.exe -Command \"New-NetFirewallRule -DisplayName ''ADB Wireless'' -Direction Inbound -Protocol TCP -LocalPort 37000-44000 -Action Allow\")",
+      "Bash(adb devices:*)",
+      "Bash(./gradlew installDebug)",
+      "Bash(cmd.exe /c \"gradlew.bat installDebug\")",
+      "Bash(cmd.exe /c \"gradlew.bat installDebug 2>&1\")",
+      "Bash(git add *)"
+    ]
+  }
+}

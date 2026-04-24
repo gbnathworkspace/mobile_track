@@ -1,5 +1,6 @@
 package com.mobiletrack.app.presentation.applimits
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -15,6 +16,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.mobiletrack.app.data.local.entity.AppRule
+import com.mobiletrack.app.presentation.design.MTSpacing
+import com.mobiletrack.app.presentation.design.components.MTCard
+import com.mobiletrack.app.presentation.design.components.MTEmptyState
+import com.mobiletrack.app.presentation.design.components.MTSearchField
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -23,6 +28,7 @@ fun AppLimitsScreen(
     viewModel: AppLimitsViewModel = hiltViewModel()
 ) {
     val rules by viewModel.allRules.collectAsStateWithLifecycle(emptyList())
+    val installedApps by viewModel.installedApps.collectAsStateWithLifecycle()
     var showAddDialog by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -47,18 +53,16 @@ fun AppLimitsScreen(
                 modifier = Modifier.fillMaxSize().padding(padding),
                 contentAlignment = Alignment.Center
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.Timer, contentDescription = null, modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.outline)
-                    Spacer(Modifier.height(16.dp))
-                    Text("No limits set", style = MaterialTheme.typography.titleMedium)
-                    Text("Tap + to add a time limit for an app", color = MaterialTheme.colorScheme.outline)
-                }
+                MTEmptyState(
+                    icon = Icons.Default.Timer,
+                    title = "No limits set",
+                    subtitle = "Tap + to add a time limit for an app"
+                )
             }
         } else {
             LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier.fillMaxSize().padding(padding).padding(MTSpacing.md),
+                verticalArrangement = Arrangement.spacedBy(MTSpacing.sm)
             ) {
                 items(rules) { rule ->
                     AppRuleCard(
@@ -73,9 +77,10 @@ fun AppLimitsScreen(
 
     if (showAddDialog) {
         AddAppLimitDialog(
+            installedApps = installedApps,
             onDismiss = { showAddDialog = false },
-            onConfirm = { pkg, appName, limitMinutes ->
-                viewModel.setLimit(pkg, appName, limitMinutes)
+            onConfirm = { pkg, appName, limitMinutes, scrollLimit ->
+                viewModel.setLimit(pkg, appName, limitMinutes, scrollLimit)
                 showAddDialog = false
             }
         )
@@ -88,16 +93,23 @@ fun AppRuleCard(
     onToggleBlock: () -> Unit,
     onDelete: () -> Unit
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    MTCard(modifier = Modifier.fillMaxWidth()) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(MTSpacing.md),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(rule.appName, fontWeight = FontWeight.SemiBold)
                 if (rule.dailyLimitMinutes > 0) {
                     Text(
-                        "Limit: ${rule.dailyLimitMinutes}m/day",
+                        "Time: ${rule.dailyLimitMinutes}m/day",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                }
+                if (rule.dailyScrollLimit > 0) {
+                    Text(
+                        "Scrolls: ${rule.dailyScrollLimit}/day",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline
                     )
@@ -128,48 +140,83 @@ fun AppRuleCard(
 
 @Composable
 fun AddAppLimitDialog(
+    installedApps: List<InstalledApp>,
     onDismiss: () -> Unit,
-    onConfirm: (packageName: String, appName: String, limitMinutes: Int) -> Unit
+    onConfirm: (packageName: String, appName: String, limitMinutes: Int, scrollLimit: Int) -> Unit
 ) {
-    var packageName by remember { mutableStateOf("") }
-    var appName by remember { mutableStateOf("") }
+    var search by remember { mutableStateOf("") }
+    var selectedApp by remember { mutableStateOf<InstalledApp?>(null) }
     var limitMinutes by remember { mutableStateOf("60") }
+    var scrollLimit by remember { mutableStateOf("") }
+
+    val filtered = remember(search, installedApps) {
+        if (search.isBlank()) installedApps
+        else installedApps.filter { it.appName.contains(search, ignoreCase = true) }
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add App Limit") },
+        title = { Text(if (selectedApp == null) "Select App" else "Set Limit") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = appName,
-                    onValueChange = { appName = it },
-                    label = { Text("App Name") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = packageName,
-                    onValueChange = { packageName = it },
-                    label = { Text("Package Name (e.g. com.instagram.android)") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = limitMinutes,
-                    onValueChange = { limitMinutes = it },
-                    label = { Text("Daily Limit (minutes)") },
-                    modifier = Modifier.fillMaxWidth()
-                )
+            if (selectedApp == null) {
+                Column {
+                    MTSearchField(
+                        value = search,
+                        onValueChange = { search = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = "Search apps..."
+                    )
+                    Spacer(Modifier.height(MTSpacing.sm))
+                    LazyColumn(modifier = Modifier.heightIn(max = 300.dp)) {
+                        items(filtered) { app ->
+                            ListItem(
+                                headlineContent = { Text(app.appName) },
+                                supportingContent = {
+                                    Text(app.packageName,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.outline)
+                                },
+                                modifier = Modifier.clickable { selectedApp = app }
+                            )
+                            HorizontalDivider()
+                        }
+                    }
+                }
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(MTSpacing.sm)) {
+                    Text(selectedApp!!.appName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text(selectedApp!!.packageName, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
+                    Spacer(Modifier.height(MTSpacing.xs))
+                    OutlinedTextField(
+                        value = limitMinutes,
+                        onValueChange = { limitMinutes = it },
+                        label = { Text("Daily Time Limit (minutes, 0 = none)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    OutlinedTextField(
+                        value = scrollLimit,
+                        onValueChange = { scrollLimit = it },
+                        label = { Text("Daily Scroll Limit (0 = none)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
             }
         },
         confirmButton = {
-            Button(onClick = {
-                val minutes = limitMinutes.toIntOrNull() ?: 60
-                if (packageName.isNotBlank() && appName.isNotBlank()) {
-                    onConfirm(packageName, appName, minutes)
-                }
-            }) { Text("Save") }
+            if (selectedApp != null) {
+                Button(onClick = {
+                    val minutes = limitMinutes.toIntOrNull() ?: 60
+                    val scrolls = scrollLimit.toIntOrNull() ?: 0
+                    onConfirm(selectedApp!!.packageName, selectedApp!!.appName, minutes, scrolls)
+                }) { Text("Save") }
+            }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = {
+                if (selectedApp != null) selectedApp = null else onDismiss()
+            }) { Text(if (selectedApp != null) "Back" else "Cancel") }
         }
     )
 }

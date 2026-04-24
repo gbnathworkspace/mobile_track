@@ -11,5 +11,6 @@ data class AppUsageSession(
     val date: String,           // yyyy-MM-dd
     val totalMinutes: Int,
     val openCount: Int,
+    val totalScrolls: Int = 0,
     val updatedAt: Long = System.currentTimeMillis()
 )

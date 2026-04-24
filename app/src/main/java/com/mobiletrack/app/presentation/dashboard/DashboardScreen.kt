@@ -15,6 +15,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.mobiletrack.app.data.local.entity.AppUsageSession
+import com.mobiletrack.app.presentation.design.MTIconSize
+import com.mobiletrack.app.presentation.design.MTSpacing
+import com.mobiletrack.app.presentation.design.components.MTCard
+import com.mobiletrack.app.presentation.design.components.MTMetricCard
+import com.mobiletrack.app.presentation.design.components.MTSectionTitle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,22 +48,22 @@ fun DashboardScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(MTSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(MTSpacing.md)
         ) {
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    StatCard(
+                    MTMetricCard(
                         modifier = Modifier.weight(1f),
                         icon = Icons.Default.PhoneAndroid,
                         label = "Screen Time",
                         value = formatMinutes(totalMinutes ?: 0),
                         color = MaterialTheme.colorScheme.primary
                     )
-                    StatCard(
+                    MTMetricCard(
                         modifier = Modifier.weight(1f),
                         icon = Icons.Default.Visibility,
                         label = "Unlocks",
@@ -73,11 +78,7 @@ fun DashboardScreen(
             }
 
             item {
-                Text(
-                    "Top Apps Today",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
+                MTSectionTitle("Top Apps Today")
             }
 
             items(topApps.take(5)) { session ->
@@ -110,23 +111,21 @@ fun StatCard(
 
 @Composable
 fun StreakCard(days: Int) {
-    Card(
+    MTCard(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
-        )
+        containerColor = MaterialTheme.colorScheme.primaryContainer
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(MTSpacing.md),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
                 Icons.Default.LocalFireDepartment,
                 contentDescription = "Streak",
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(40.dp)
+                modifier = Modifier.size(MTIconSize.xl)
             )
-            Spacer(Modifier.width(16.dp))
+            Spacer(Modifier.width(MTSpacing.md))
             Column {
                 Text(
                     "$days day streak",
@@ -145,15 +144,22 @@ fun StreakCard(days: Int) {
 
 @Composable
 fun AppUsageRow(session: AppUsageSession) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    MTCard(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(horizontal = MTSpacing.md, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(session.appName, style = MaterialTheme.typography.bodyLarge)
+            Column(modifier = Modifier.weight(1f)) {
+                Text(session.appName, style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    "${session.openCount} opens today",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline
+                )
+            }
             Text(
                 formatMinutes(session.totalMinutes),
                 style = MaterialTheme.typography.bodyMedium,

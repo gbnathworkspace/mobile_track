@@ -1,6 +1,7 @@
 package com.mobiletrack.app.presentation.reports
 
 import androidx.lifecycle.ViewModel
+import com.mobiletrack.app.data.local.dao.AppOpenEventDao
 import com.mobiletrack.app.data.local.dao.AppUsageDao
 import com.mobiletrack.app.data.local.dao.UnlockDao
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -11,7 +12,8 @@ import javax.inject.Inject
 @HiltViewModel
 class ReportsViewModel @Inject constructor(
     private val appUsageDao: AppUsageDao,
-    private val unlockDao: UnlockDao
+    private val unlockDao: UnlockDao,
+    private val appOpenEventDao: AppOpenEventDao
 ) : ViewModel() {
 
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
@@ -23,6 +25,7 @@ class ReportsViewModel @Inject constructor(
         get() = dateFormat.format(Date(sevenDaysAgoMs))
 
     val weeklyUsage = appUsageDao.getUsageFrom(sevenDaysAgoDate)
-
     val weeklyUnlocks = unlockDao.countSince(sevenDaysAgoMs)
+    val weeklyOpenCounts = appOpenEventDao.getOpenCountsSince(sevenDaysAgoMs)
+    val hourlyBreakdown = appOpenEventDao.getHourlyBreakdownSince(sevenDaysAgoMs)
 }

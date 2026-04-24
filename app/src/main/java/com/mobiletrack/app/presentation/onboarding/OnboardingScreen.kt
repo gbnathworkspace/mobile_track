@@ -18,6 +18,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.mobiletrack.app.presentation.design.MTIconSize
+import com.mobiletrack.app.presentation.design.MTSpacing
+import com.mobiletrack.app.presentation.design.components.MTPrimaryButton
 import kotlinx.coroutines.launch
 
 data class OnboardingPage(
@@ -28,9 +31,8 @@ data class OnboardingPage(
     val onAction: ((android.content.Context) -> Unit)? = null
 )
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun OnboardingScreen(
+fun OnboardingScreen( 
     onComplete: () -> Unit,
     viewModel: OnboardingViewModel = hiltViewModel()
 ) {
@@ -94,24 +96,24 @@ fun OnboardingScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(32.dp),
+                    .padding(MTSpacing.xl),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
                 Icon(
                     page.icon,
                     contentDescription = null,
-                    modifier = Modifier.size(80.dp),
+                    modifier = Modifier.size(MTIconSize.hero),
                     tint = MaterialTheme.colorScheme.primary
                 )
-                Spacer(Modifier.height(32.dp))
+                Spacer(Modifier.height(MTSpacing.xl))
                 Text(
                     page.title,
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center
                 )
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(MTSpacing.md))
                 Text(
                     page.description,
                     style = MaterialTheme.typography.bodyLarge,
@@ -119,18 +121,19 @@ fun OnboardingScreen(
                     color = MaterialTheme.colorScheme.outline
                 )
                 if (page.actionLabel != null && page.onAction != null) {
-                    Spacer(Modifier.height(32.dp))
-                    Button(onClick = { page.onAction.invoke(context) }) {
-                        Text(page.actionLabel)
-                    }
+                    Spacer(Modifier.height(MTSpacing.xl))
+                    MTPrimaryButton(
+                        text = page.actionLabel,
+                        onClick = { page.onAction.invoke(context) }
+                    )
                 }
             }
         }
 
         // Page indicator
         Row(
-            modifier = Modifier.padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.padding(MTSpacing.md),
+            horizontalArrangement = Arrangement.spacedBy(MTSpacing.sm)
         ) {
             repeat(pages.size) { index ->
                 val selected = pagerState.currentPage == index
@@ -147,7 +150,7 @@ fun OnboardingScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 16.dp),
+                .padding(horizontal = MTSpacing.lg, vertical = MTSpacing.md),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             if (pagerState.currentPage > 0) {
@@ -159,18 +162,19 @@ fun OnboardingScreen(
             }
 
             val isLast = pagerState.currentPage == pages.size - 1
-            Button(onClick = {
+            MTPrimaryButton(
+                text = if (isLast) "Get Started" else "Next",
+                onClick = {
                 if (isLast) {
                     viewModel.completeOnboarding()
                     onComplete()
                 } else {
                     scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
                 }
-            }) {
-                Text(if (isLast) "Get Started" else "Next")
-            }
+                }
+            )
         }
 
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(MTSpacing.md))
     }
 }

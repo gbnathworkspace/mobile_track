@@ -12,6 +12,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.mobiletrack.app.presentation.design.MTIconSize
+import com.mobiletrack.app.presentation.design.MTSpacing
+import com.mobiletrack.app.presentation.design.components.MTCard
+import com.mobiletrack.app.presentation.design.components.MTIconRow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,7 +43,7 @@ fun RulesScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp),
+                .padding(MTSpacing.md),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             // Unlock prompt toggle
@@ -55,8 +59,8 @@ fun RulesScreen(
             }
 
             // Max unlocks per day
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp)) {
+            MTCard(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(MTSpacing.md)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Visibility, contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary)
@@ -106,19 +110,15 @@ fun RuleCard(
     subtitle: String,
     action: @Composable () -> Unit
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(28.dp))
-            Spacer(Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(title, fontWeight = FontWeight.SemiBold)
-                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
-            }
+    MTCard(modifier = Modifier.fillMaxWidth()) {
+        MTIconRow(
+            icon = icon,
+            title = title,
+            subtitle = subtitle,
+            iconTint = MaterialTheme.colorScheme.primary,
+            trailing = {
             action()
-        }
+            }
+        )
     }
 }

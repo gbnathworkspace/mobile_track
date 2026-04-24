@@ -22,6 +22,7 @@ class UserPreferences @Inject constructor(
         val ONBOARDING_COMPLETE = booleanPreferencesKey("onboarding_complete")
         val BEHAVIOR_SCORE_TODAY = intPreferencesKey("behavior_score_today")
         val STREAK_DAYS = intPreferencesKey("streak_days")
+        val UNLOCK_THEME = stringPreferencesKey("unlock_theme")
     }
 
     val maxUnlocksPerDay: Flow<Int> = context.dataStore.data.map {
@@ -54,5 +55,13 @@ class UserPreferences @Inject constructor(
 
     suspend fun setStreakDays(days: Int) {
         context.dataStore.edit { it[Keys.STREAK_DAYS] = days }
+    }
+
+    val unlockTheme: Flow<String> = context.dataStore.data.map {
+        it[Keys.UNLOCK_THEME] ?: "LIGHT"
+    }
+
+    suspend fun setUnlockTheme(theme: String) {
+        context.dataStore.edit { it[Keys.UNLOCK_THEME] = theme }
     }
 }
