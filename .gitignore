@@ -22,3 +22,9 @@ app/build/
 app/release/
 *.keystore
 *.jks
+
+# Temp/build artifacts
+.gradle-install-1/
+.gradle-tmp/
+nul
+.codex
