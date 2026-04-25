@@ -23,6 +23,8 @@ class UserPreferences @Inject constructor(
         val BEHAVIOR_SCORE_TODAY = intPreferencesKey("behavior_score_today")
         val STREAK_DAYS = intPreferencesKey("streak_days")
         val UNLOCK_THEME = stringPreferencesKey("unlock_theme")
+        val DISABLED_PURPOSES = stringSetPreferencesKey("disabled_purposes")
+        val PURPOSE_HINTS_JSON = stringPreferencesKey("purpose_hints_json")
     }
 
     val maxUnlocksPerDay: Flow<Int> = context.dataStore.data.map {
@@ -63,5 +65,21 @@ class UserPreferences @Inject constructor(
 
     suspend fun setUnlockTheme(theme: String) {
         context.dataStore.edit { it[Keys.UNLOCK_THEME] = theme }
+    }
+
+    val disabledPurposes: Flow<Set<String>> = context.dataStore.data.map {
+        it[Keys.DISABLED_PURPOSES] ?: emptySet()
+    }
+
+    suspend fun setDisabledPurposes(disabled: Set<String>) {
+        context.dataStore.edit { it[Keys.DISABLED_PURPOSES] = disabled }
+    }
+
+    val purposeHintsJson: Flow<String> = context.dataStore.data.map {
+        it[Keys.PURPOSE_HINTS_JSON] ?: ""
+    }
+
+    suspend fun setPurposeHintsJson(json: String) {
+        context.dataStore.edit { it[Keys.PURPOSE_HINTS_JSON] = json }
     }
 }

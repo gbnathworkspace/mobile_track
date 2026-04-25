@@ -5,6 +5,7 @@ import android.app.usage.UsageEvents
 import android.content.Context
 import android.content.pm.PackageManager
 import com.mobiletrack.app.data.local.dao.AppUsageDao
+import com.mobiletrack.app.data.local.dao.UnlockDao
 import com.mobiletrack.app.data.local.entity.AppUsageSession
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.text.SimpleDateFormat
@@ -15,12 +16,17 @@ import javax.inject.Singleton
 @Singleton
 class UsageTracker @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val appUsageDao: AppUsageDao
+    private val appUsageDao: AppUsageDao,
+    private val unlockDao: UnlockDao
 ) {
     private val usageStatsManager =
         context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
     private val packageManager = context.packageManager
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    private var lastCleanupDate: String? = null
+    private companion object {
+        const val RETENTION_DAYS = 30
+    }
 
     suspend fun syncTodayUsage() {
         val today = dateFormat.format(Date())
@@ -47,30 +53,29 @@ class UsageTracker @Inject constructor(
 
                 val minutes = (foregroundMs / 60_000).toInt()
                 if (minutes > 0) {
-                    val now = System.currentTimeMillis()
-                    // Insert a new row only if none exists for today (openCount starts at 0,
-                    // AccessibilityService increments it on each window-focus event).
-                    // If the row already exists, IGNORE leaves openCount untouched.
-                    appUsageDao.insertIfAbsent(
+                    appUsageDao.upsertUsageStats(
                         AppUsageSession(
                             packageName = packageName,
                             appName = appName,
                             date = today,
                             totalMinutes = minutes,
                             openCount = 0,
-                            updatedAt = now
+                            updatedAt = System.currentTimeMillis()
                         )
-                    )
-                    // Always update the time/name fields without touching openCount or scrolls.
-                    appUsageDao.updateUsageStats(
-                        pkg = packageName,
-                        appName = appName,
-                        date = today,
-                        minutes = minutes,
-                        updatedAt = now
                     )
                 }
             }
+
+        // Run cleanup once per day to prune data older than RETENTION_DAYS
+        if (lastCleanupDate != today) {
+            lastCleanupDate = today
+            val cutoff = Calendar.getInstance().apply {
+                add(Calendar.DAY_OF_YEAR, -RETENTION_DAYS)
+            }
+            val cutoffDate = dateFormat.format(cutoff.time)
+            appUsageDao.deleteOlderThan(cutoffDate)
+            unlockDao.deleteOlderThan(cutoff.timeInMillis)
+        }
     }
 
     private fun aggregateForegroundUsage(startMs: Long, endMs: Long): Map<String, Long> {

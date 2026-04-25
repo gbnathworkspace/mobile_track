@@ -20,12 +20,20 @@ private val LightColors = lightColorScheme(
 )
 
 private val DarkColors = darkColorScheme(
-    primary = Color(0xFF90CAF9),
-    onPrimary = Color(0xFF003064),
-    secondary = Color(0xFF81D4FA),
-    background = Color(0xFF121212),
-    surface = Color(0xFF1E1E1E),
-    error = Color(0xFFEF9A9A)
+    primary = Color(0xFF3D5AFE),
+    onPrimary = Color.White,
+    secondary = Color(0xFF7C4DFF),
+    background = Color(0xFF0A0E21),
+    onBackground = Color.White,
+    surface = Color(0xFF0F1529),
+    onSurface = Color.White,
+    surfaceVariant = Color(0xFF131A2E),
+    onSurfaceVariant = Color(0xFF7B8CB8),
+    outline = Color(0xFF4A5A78),
+    error = Color(0xFFEF5350),
+    surfaceContainer = Color(0xFF0A0E21),
+    surfaceContainerLow = Color(0xFF0A0E21),
+    surfaceContainerHigh = Color(0xFF131A2E)
 )
 
 // Frosted-glass aesthetic: deep navy background, icy-blue accents, translucent surfaces

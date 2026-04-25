@@ -1,6 +1,8 @@
 package com.mobiletrack.app.presentation.dashboard
 
 import androidx.lifecycle.ViewModel
+import com.mobiletrack.app.data.local.dao.AppOpenEventDao
+import com.mobiletrack.app.data.local.dao.AppRuleDao
 import com.mobiletrack.app.data.local.dao.AppUsageDao
 import com.mobiletrack.app.data.local.dao.UnlockDao
 import com.mobiletrack.app.data.preferences.UserPreferences
@@ -14,6 +16,8 @@ import javax.inject.Inject
 class DashboardViewModel @Inject constructor(
     private val appUsageDao: AppUsageDao,
     private val unlockDao: UnlockDao,
+    private val appRuleDao: AppRuleDao,
+    private val appOpenEventDao: AppOpenEventDao,
     private val userPreferences: UserPreferences
 ) : ViewModel() {
 
@@ -28,11 +32,10 @@ class DashboardViewModel @Inject constructor(
             set(Calendar.MILLISECOND, 0)
         }.timeInMillis
 
-    val totalMinutesToday = appUsageDao.getTotalMinutesForDate(today)
-
+    val totalMinutesToday = appUsageDao.getTotalMinutesForDate(today).map { it ?: 0 }
     val unlockCountToday = unlockDao.countSince(startOfDayMs)
-
     val topAppsToday = appUsageDao.getUsageForDate(today)
-
+    val allRules = appRuleDao.getAllRules()
     val streakDays = userPreferences.streakDays
+    val hourlyBreakdown = appOpenEventDao.getHourlyBreakdownSince(startOfDayMs)
 }

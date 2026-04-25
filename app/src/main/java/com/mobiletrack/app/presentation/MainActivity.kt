@@ -35,7 +35,7 @@ class MainActivity : ComponentActivity() {
         startForegroundService(Intent(this, TrackingService::class.java))
 
         setContent {
-            MobileTrackTheme {
+            MobileTrackTheme(darkTheme = true) {
                 val onboardingComplete by viewModel.onboardingComplete.collectAsStateWithLifecycle(null)
                 val navController = rememberNavController()
 

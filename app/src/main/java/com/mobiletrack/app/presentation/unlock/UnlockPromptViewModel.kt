@@ -23,6 +23,8 @@ class UnlockPromptViewModel @Inject constructor(
         }
     }
 
+    val disabledPurposes = userPreferences.disabledPurposes
+
     suspend fun recordPurpose(purpose: String) {
         unlockDao.insert(UnlockEvent(hadPurpose = true, purpose = purpose))
     }

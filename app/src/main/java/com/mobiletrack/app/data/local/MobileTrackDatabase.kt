@@ -31,6 +31,26 @@ val MIGRATION_2_3 = object : Migration(2, 3) {
     }
 }
 
+val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // Deduplicate: keep the row with highest totalMinutes for each (packageName, date)
+        db.execSQL(
+            """
+            DELETE FROM app_usage_sessions WHERE id NOT IN (
+                SELECT MAX(id) FROM app_usage_sessions GROUP BY packageName, date
+            )
+            """.trimIndent()
+        )
+        // Add unique index to prevent future duplicates
+        db.execSQL(
+            """
+            CREATE UNIQUE INDEX IF NOT EXISTS index_app_usage_sessions_packageName_date
+            ON app_usage_sessions (packageName, date)
+            """.trimIndent()
+        )
+    }
+}
+
 @Database(
     entities = [
         AppUsageSession::class,
@@ -39,7 +59,7 @@ val MIGRATION_2_3 = object : Migration(2, 3) {
         FocusSession::class,
         AppOpenEvent::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class MobileTrackDatabase : RoomDatabase() {

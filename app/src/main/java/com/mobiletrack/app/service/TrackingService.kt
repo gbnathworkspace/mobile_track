@@ -1,24 +1,19 @@
 package com.mobiletrack.app.service
 
 import android.app.*
-import android.app.KeyguardManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.os.IBinder
 import android.os.Build
+import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
-import com.mobiletrack.app.R
 import com.mobiletrack.app.data.local.dao.AppRuleDao
-import com.mobiletrack.app.data.local.dao.AppUsageDao
 import com.mobiletrack.app.data.local.dao.UnlockDao
-import com.mobiletrack.app.data.local.entity.UnlockEvent
 import com.mobiletrack.app.data.preferences.UserPreferences
 import com.mobiletrack.app.presentation.MainActivity
-import com.mobiletrack.app.presentation.unlock.UnlockPromptActivity
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
@@ -36,14 +31,19 @@ class TrackingService : Service() {
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-    private var lastPromptLaunchAt = 0L
 
-    private val unlockBroadcastReceiver = object : BroadcastReceiver() {
+    // Dynamic receiver for SCREEN_ON/SCREEN_OFF (cannot be received via manifest on API 26+)
+    private val screenReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            Log.d(TAG, "TrackingService receiver action=${intent.action}")
-            if (intent.action != Intent.ACTION_USER_PRESENT && intent.action != Intent.ACTION_SCREEN_ON) return
-            scope.launch {
-                handleUnlockSignal(intent.action)
+            when (intent.action) {
+                Intent.ACTION_SCREEN_ON -> {
+                    scope.launch {
+                        UnlockHandler.handleUnlock(context, intent.action, unlockDao, userPreferences)
+                    }
+                }
+                Intent.ACTION_SCREEN_OFF -> {
+                    ScreenState.lastScreenOffAt = System.currentTimeMillis()
+                }
             }
         }
     }
@@ -53,28 +53,28 @@ class TrackingService : Service() {
         const val CHANNEL_ID = "tracking_channel"
         const val NOTIF_ID = 1
         const val SYNC_INTERVAL_MS = 30_000L // sync every 30 seconds
-        private const val PROMPT_DEBOUNCE_MS = 3_000L
     }
 
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
         startForeground(NOTIF_ID, buildNotification())
-        registerUnlockReceiver()
+        registerScreenReceiver()
+        UnlockHandler.observePreferences(userPreferences, scope)
         startTracking()
     }
 
-    private fun registerUnlockReceiver() {
+    private fun registerScreenReceiver() {
         val filter = IntentFilter().apply {
             addAction(Intent.ACTION_SCREEN_ON)
-            addAction(Intent.ACTION_USER_PRESENT)
+            addAction(Intent.ACTION_SCREEN_OFF)
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(unlockBroadcastReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+            registerReceiver(screenReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
         } else {
             ContextCompat.registerReceiver(
                 this,
-                unlockBroadcastReceiver,
+                screenReceiver,
                 filter,
                 ContextCompat.RECEIVER_NOT_EXPORTED
             )
@@ -84,8 +84,14 @@ class TrackingService : Service() {
     private fun startTracking() {
         scope.launch {
             while (isActive) {
-                usageTracker.syncTodayUsage()
-                checkLimits()
+                try {
+                    usageTracker.syncTodayUsage()
+                    checkLimits()
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    Log.e(TAG, "Sync failed", e)
+                }
                 delay(SYNC_INTERVAL_MS)
             }
         }
@@ -95,40 +101,6 @@ class TrackingService : Service() {
         val today = dateFormat.format(Date())
         val limitedApps = appRuleDao.getLimitedApps().first()
         // Enforcement is handled by BlockerAccessibilityService — this just syncs data
-        // Future: broadcast an intent to notify the accessibility service of breached limits
-    }
-
-    private suspend fun handleUnlockSignal(action: String?) {
-        val keyguardManager = getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
-
-        if (action == Intent.ACTION_SCREEN_ON) {
-            delay(1200)
-            val lockedAfterDelay = keyguardManager.isDeviceLocked
-            Log.d(TAG, "SCREEN_ON check after delay: isDeviceLocked=$lockedAfterDelay")
-            if (lockedAfterDelay) return
-        }
-
-        val now = System.currentTimeMillis()
-        if (now - lastPromptLaunchAt < PROMPT_DEBOUNCE_MS) {
-            Log.d(TAG, "Debounced unlock prompt launch")
-            return
-        }
-        lastPromptLaunchAt = now
-
-        unlockDao.insert(UnlockEvent())
-        val promptEnabled = userPreferences.unlockPromptEnabled.first()
-        Log.d(TAG, "unlockPromptEnabled=$promptEnabled")
-        if (!promptEnabled) return
-
-        val promptIntent = Intent(this, UnlockPromptActivity::class.java).apply {
-            addFlags(
-                Intent.FLAG_ACTIVITY_NEW_TASK or
-                    Intent.FLAG_ACTIVITY_SINGLE_TOP or
-                    Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS
-            )
-        }
-        Log.d(TAG, "Starting UnlockPromptActivity from TrackingService")
-        startActivity(promptIntent)
     }
 
     private fun createNotificationChannel() {
@@ -164,7 +136,7 @@ class TrackingService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
-        unregisterReceiver(unlockBroadcastReceiver)
+        unregisterReceiver(screenReceiver)
         scope.cancel()
         super.onDestroy()
     }

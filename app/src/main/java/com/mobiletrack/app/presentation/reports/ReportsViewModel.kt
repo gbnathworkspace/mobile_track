@@ -27,5 +27,4 @@ class ReportsViewModel @Inject constructor(
     val weeklyUsage = appUsageDao.getUsageFrom(sevenDaysAgoDate)
     val weeklyUnlocks = unlockDao.countSince(sevenDaysAgoMs)
     val weeklyOpenCounts = appOpenEventDao.getOpenCountsSince(sevenDaysAgoMs)
-    val hourlyBreakdown = appOpenEventDao.getHourlyBreakdownSince(sevenDaysAgoMs)
 }

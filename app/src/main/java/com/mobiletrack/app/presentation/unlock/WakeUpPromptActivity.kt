@@ -1,5 +1,6 @@
-package com.mobiletrack.app.presentation.blocked
+package com.mobiletrack.app.presentation.unlock
 
+import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
@@ -12,8 +13,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Block
-import androidx.compose.material.icons.outlined.TimerOff
+import androidx.compose.material.icons.outlined.WbSunny
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -30,70 +30,57 @@ import androidx.core.view.WindowCompat
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 
+// ── Colors ──────────────────────────────────────────────────────────────────
+private val TextPrimary = Color.White
+private val TextSecondary = Color(0xFFE0C8FF)
+private val TextMuted = Color(0xFF9878B0)
+private val AccentSunrise = Color(0xFFE8956A)
+private val AccentGold = Color(0xFFFFD93D)
+private val CardBg = Color(0x20FFFFFF)
+private val CardBorder = Brush.linearGradient(listOf(Color(0x30FFFFFF), Color(0x10FFFFFF)))
+
 @AndroidEntryPoint
-class AppBlockedActivity : ComponentActivity() {
+class WakeUpPromptActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val appName = intent.getStringExtra("app_name") ?: "This app"
-        val isLimitReached = intent.getBooleanExtra("is_limit_reached", false)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            setShowWhenLocked(true)
+            setTurnScreenOn(true)
+        }
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
+        @Suppress("DEPRECATION")
+        window.setFlags(
+            WindowManager.LayoutParams.FLAG_FULLSCREEN,
+            WindowManager.LayoutParams.FLAG_FULLSCREEN
+        )
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() { /* blocked */ }
+            override fun handleOnBackPressed() { /* no-op */ }
         })
 
         setContent {
-            AppBlockedScreen(
-                appName = appName,
-                isLimitReached = isLimitReached,
-                onGoBack = { finish() }
-            )
+            WakeUpScreen(onDismiss = { finish() })
         }
     }
 }
 
 @Composable
-fun AppBlockedScreen(
-    appName: String,
-    isLimitReached: Boolean,
-    onGoBack: () -> Unit
-) {
-    val accentColor = if (isLimitReached) Color(0xFFFFCA28) else Color(0xFFEF5350)
-    val icon = if (isLimitReached) Icons.Outlined.TimerOff else Icons.Outlined.Block
-    val title = if (isLimitReached) "Time's Up" else "App Blocked"
-    val subtitle = if (isLimitReached)
-        "You've reached your daily limit for $appName."
-    else
-        "You've blocked $appName."
-
-    val bodyLines = if (isLimitReached) listOf(
-        "You set this time limit because you know $appName pulls you in.",
-        "Your future self will thank you for stopping here.",
-        "Do something real — stretch, walk, or just sit for a moment."
-    ) else listOf(
-        "This app is blocked because you chose to protect your focus.",
-        "Every time you resist, your self-control gets stronger.",
-        "Find something meaningful to do with this moment."
-    )
-
-    val footerText = if (isLimitReached)
-        "Come back tomorrow with a fresh start."
-    else
-        "You set this limit yourself. You've got this."
-
-    // Read timer
-    var secondsLeft by remember { mutableIntStateOf(4) }
+fun WakeUpScreen(onDismiss: () -> Unit) {
+    // 8-second read timer
+    var secondsLeft by remember { mutableIntStateOf(8) }
     val canDismiss = secondsLeft <= 0
 
     LaunchedEffect(Unit) {
-        repeat(4) {
+        repeat(8) {
             delay(1_000)
             secondsLeft--
         }
     }
 
-    // Breathing animation
+    // Breathing animation — consistent with other overlay screens
     val infiniteTransition = rememberInfiniteTransition(label = "breath")
     val breathScale by infiniteTransition.animateFloat(
         initialValue = 0.95f,
@@ -105,18 +92,18 @@ fun AppBlockedScreen(
         label = "breathScale"
     )
 
+    val morningGradient = Brush.verticalGradient(
+        colors = listOf(
+            Color(0xFF1A0A2E),
+            Color(0xFF2D1B69),
+            Color(0xFF562B7C)
+        )
+    )
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFF0A0E21),
-                        Color(0xFF0D1B3E),
-                        Color(0xFF080C1A)
-                    )
-                )
-            )
+            .background(morningGradient)
     ) {
         Column(
             modifier = Modifier
@@ -126,7 +113,7 @@ fun AppBlockedScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Animated icon
+            // Animated icon ring — same pattern as ScrollReminder/AppBlocked
             Box(
                 modifier = Modifier
                     .size(100.dp)
@@ -137,21 +124,21 @@ fun AppBlockedScreen(
                     modifier = Modifier
                         .size(100.dp)
                         .clip(CircleShape)
-                        .background(accentColor.copy(alpha = 0.08f)),
+                        .background(AccentGold.copy(alpha = 0.08f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Box(
                         modifier = Modifier
                             .size(72.dp)
                             .clip(CircleShape)
-                            .background(accentColor.copy(alpha = 0.12f)),
+                            .background(AccentGold.copy(alpha = 0.12f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            icon,
+                            Icons.Outlined.WbSunny,
                             contentDescription = null,
                             modifier = Modifier.size(36.dp),
-                            tint = accentColor
+                            tint = AccentGold
                         )
                     }
                 }
@@ -159,56 +146,58 @@ fun AppBlockedScreen(
 
             Spacer(Modifier.height(28.dp))
 
+            // Title — consistent 28sp with all overlay screens
             Text(
-                title,
+                "Good Morning",
                 style = MaterialTheme.typography.headlineMedium.copy(
                     fontSize = 28.sp,
                     letterSpacing = (-0.5).sp
                 ),
                 fontWeight = FontWeight.Bold,
-                color = Color.White,
+                color = TextPrimary,
                 textAlign = TextAlign.Center
             )
 
             Spacer(Modifier.height(8.dp))
 
             Text(
-                subtitle,
+                "You just woke up.",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color(0xFF7B8CB8),
+                color = TextSecondary,
                 textAlign = TextAlign.Center
             )
 
             Spacer(Modifier.height(28.dp))
 
-            // Body messages
+            // Body messages — numbered glass card, same as ScrollReminder/AppBlocked
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(20.dp))
-                    .background(Color(0x14FFFFFF))
-                    .border(
-                        width = 1.dp,
-                        brush = Brush.linearGradient(
-                            colors = listOf(Color(0x20FFFFFF), Color(0x08FFFFFF))
-                        ),
-                        shape = RoundedCornerShape(20.dp)
-                    )
+                    .background(CardBg)
+                    .border(width = 1.dp, brush = CardBorder, shape = RoundedCornerShape(20.dp))
                     .padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                val bodyLines = listOf(
+                    "The first thing you look at shapes your entire day. Your mind is fresh — don't flood it.",
+                    "Scrolling through feeds fills your brain with other people's priorities before you've set your own.",
+                    "Drink water. Stretch for 2 minutes. Think about one thing you want to accomplish today.",
+                    "Your phone will still be here in 30 minutes. Your morning clarity won't."
+                )
+
                 bodyLines.forEachIndexed { index, line ->
                     Row {
                         Text(
                             text = "${index + 1}",
-                            color = accentColor.copy(alpha = 0.6f),
+                            color = AccentGold.copy(alpha = 0.6f),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.width(20.dp)
                         )
                         Text(
                             text = line,
-                            color = Color(0xFFCCD6E8),
+                            color = Color(0xFFE0D0F0),
                             style = MaterialTheme.typography.bodyMedium,
                             lineHeight = 22.sp
                         )
@@ -218,13 +207,13 @@ fun AppBlockedScreen(
 
             Spacer(Modifier.height(32.dp))
 
-            // Dismiss button
+            // Dismiss button — consistent with all overlay screens
             Button(
-                onClick = onGoBack,
+                onClick = onDismiss,
                 enabled = canDismiss,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = accentColor,
-                    disabledContainerColor = Color(0xFF1A2040)
+                    containerColor = AccentSunrise,
+                    disabledContainerColor = Color(0xFF3A2050)
                 ),
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier
@@ -232,9 +221,9 @@ fun AppBlockedScreen(
                     .height(54.dp)
             ) {
                 Text(
-                    if (canDismiss) "Go Back"
-                    else "Take a breath... (${secondsLeft}s)",
-                    color = if (canDismiss) Color.White else Color(0xFF4A5070),
+                    if (canDismiss) "I'll be intentional today"
+                    else "Take a moment... (${secondsLeft}s)",
+                    color = if (canDismiss) Color.White else Color(0xFF7858A0),
                     fontWeight = FontWeight.SemiBold
                 )
             }
@@ -242,9 +231,9 @@ fun AppBlockedScreen(
             Spacer(Modifier.height(14.dp))
 
             Text(
-                footerText,
+                "Your morning routine matters more than any notification.",
                 style = MaterialTheme.typography.bodySmall,
-                color = Color(0xFF4A5A78),
+                color = TextMuted,
                 textAlign = TextAlign.Center
             )
         }

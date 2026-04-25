@@ -59,12 +59,28 @@
             android:excludeFromRecents="true"
             android:theme="@style/Theme.MobileTrack" />
 
+        <!-- Wake-Up Prompt (shown on first unlock after sleep) -->
+        <activity
+            android:name=".presentation.unlock.WakeUpPromptActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:showOnLockScreen="true"
+            android:taskAffinity=""
+            android:theme="@style/Theme.MobileTrack.Overlay" />
+
+        <!-- Scroll Reminder (gentle nudge for burst scrolling / quiet hours) -->
+        <activity
+            android:name=".presentation.blocked.ScrollReminderActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:theme="@style/Theme.MobileTrack.Overlay" />
+
         <!-- Unlock Prompt Overlay Activity -->
         <activity
             android:name=".presentation.unlock.UnlockPromptActivity"
             android:exported="false"
             android:excludeFromRecents="true"
-            android:noHistory="true"
             android:showOnLockScreen="true"
             android:taskAffinity=""
             android:theme="@style/Theme.MobileTrack.Overlay" />
@@ -117,7 +133,6 @@
             android:name=".service.UnlockReceiver"
             android:exported="false">
             <intent-filter>
-                <action android:name="android.intent.action.SCREEN_ON" />
                 <action android:name="android.intent.action.USER_PRESENT" />
             </intent-filter>
         </receiver>
