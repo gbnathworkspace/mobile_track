@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 abstract class AppUsageDao {
 
-    @Query("SELECT * FROM app_usage_sessions WHERE date = :date ORDER BY totalMinutes DESC")
+    @Query("SELECT * FROM app_usage_sessions WHERE date = :date AND packageName NOT IN (SELECT packageName FROM app_rules WHERE isHidden = 1) ORDER BY totalMinutes DESC")
     abstract fun getUsageForDate(date: String): Flow<List<AppUsageSession>>
 
     @Query("SELECT * FROM app_usage_sessions WHERE date >= :fromDate ORDER BY date DESC, totalMinutes DESC")
@@ -16,7 +16,7 @@ abstract class AppUsageDao {
     @Query("SELECT * FROM app_usage_sessions WHERE packageName = :pkg AND date = :date LIMIT 1")
     abstract suspend fun getSessionForApp(pkg: String, date: String): AppUsageSession?
 
-    @Query("SELECT SUM(totalMinutes) FROM app_usage_sessions WHERE date = :date")
+    @Query("SELECT SUM(totalMinutes) FROM app_usage_sessions WHERE date = :date AND packageName NOT IN (SELECT packageName FROM app_rules WHERE isHidden = 1)")
     abstract fun getTotalMinutesForDate(date: String): Flow<Int?>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

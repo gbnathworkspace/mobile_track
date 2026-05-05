@@ -10,10 +10,14 @@ import com.mobiletrack.app.presentation.dashboard.DashboardScreen
 import com.mobiletrack.app.presentation.onboarding.OnboardingScreen
 import com.mobiletrack.app.presentation.reports.ReportsScreen
 import com.mobiletrack.app.presentation.rules.RulesScreen
+import com.mobiletrack.app.presentation.pin.PinKind
+import com.mobiletrack.app.presentation.pin.PinVerifyHost
 import com.mobiletrack.app.presentation.settings.PurposeEditorScreen
+import com.mobiletrack.app.presentation.settings.SecuritySettingsScreen
 import com.mobiletrack.app.presentation.settings.SettingsScreen
 
 sealed class Screen(val route: String) {
+    object PinGate : Screen("pin_gate")
     object Onboarding : Screen("onboarding")
     object Dashboard : Screen("dashboard")
     object AppLimits : Screen("app_limits")
@@ -22,6 +26,7 @@ sealed class Screen(val route: String) {
     object Settings : Screen("settings")
     object PurposeEditor : Screen("purpose_editor")
     object AppCleanup : Screen("app_cleanup")
+    object Security : Screen("security")
 }
 
 @Composable
@@ -30,6 +35,21 @@ fun NavGraph(
     startDestination: String
 ) {
     NavHost(navController = navController, startDestination = startDestination) {
+        composable(Screen.PinGate.route) {
+            PinVerifyHost(
+                kind = PinKind.AppEntry,
+                title = "Enter PIN",
+                subtitle = "Unlock MobileTrack",
+                onSuccess = {
+                    navController.navigate(Screen.Dashboard.route) {
+                        popUpTo(Screen.PinGate.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+        composable(Screen.Security.route) {
+            SecuritySettingsScreen(navController = navController)
+        }
         composable(Screen.Onboarding.route) {
             OnboardingScreen(onComplete = {
                 navController.navigate(Screen.Dashboard.route) {

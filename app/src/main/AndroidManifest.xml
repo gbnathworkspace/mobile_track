@@ -52,6 +52,16 @@
             </intent-filter>
         </activity>
 
+        <!-- App-Lock PIN prompt -->
+        <activity
+            android:name=".presentation.pin.AppLockUnlockActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:showOnLockScreen="true"
+            android:taskAffinity=""
+            android:theme="@style/Theme.MobileTrack.Overlay" />
+
         <!-- App Blocked / Limit Reached Screen -->
         <activity
             android:name=".presentation.blocked.AppBlockedActivity"

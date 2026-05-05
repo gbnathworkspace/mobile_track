@@ -19,6 +19,12 @@ interface AppRuleDao {
     @Query("SELECT * FROM app_rules WHERE dailyLimitMinutes > 0")
     fun getLimitedApps(): Flow<List<AppRule>>
 
+    @Query("SELECT packageName FROM app_rules WHERE isHidden = 1")
+    suspend fun getHiddenPackages(): List<String>
+
+    @Query("UPDATE app_rules SET appLockEnabled = 0")
+    suspend fun clearAllAppLocks()
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(rule: AppRule)
 

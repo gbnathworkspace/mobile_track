@@ -5,6 +5,7 @@ import androidx.room.Room
 import com.mobiletrack.app.data.local.MIGRATION_1_2
 import com.mobiletrack.app.data.local.MIGRATION_2_3
 import com.mobiletrack.app.data.local.MIGRATION_3_4
+import com.mobiletrack.app.data.local.MIGRATION_4_5
 import com.mobiletrack.app.data.local.MobileTrackDatabase
 import com.mobiletrack.app.data.local.dao.*
 import dagger.Module
@@ -22,7 +23,7 @@ object DatabaseModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): MobileTrackDatabase =
         Room.databaseBuilder(context, MobileTrackDatabase::class.java, "mobile_track.db")
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
             .fallbackToDestructiveMigration()
             .build()
 

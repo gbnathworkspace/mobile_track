@@ -4,6 +4,7 @@ import android.app.usage.UsageStatsManager
 import android.app.usage.UsageEvents
 import android.content.Context
 import android.content.pm.PackageManager
+import com.mobiletrack.app.data.local.dao.AppRuleDao
 import com.mobiletrack.app.data.local.dao.AppUsageDao
 import com.mobiletrack.app.data.local.dao.UnlockDao
 import com.mobiletrack.app.data.local.entity.AppUsageSession
@@ -17,7 +18,8 @@ import javax.inject.Singleton
 class UsageTracker @Inject constructor(
     @ApplicationContext private val context: Context,
     private val appUsageDao: AppUsageDao,
-    private val unlockDao: UnlockDao
+    private val unlockDao: UnlockDao,
+    private val appRuleDao: AppRuleDao
 ) {
     private val usageStatsManager =
         context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
@@ -40,10 +42,11 @@ class UsageTracker @Inject constructor(
         val endMs = System.currentTimeMillis()
 
         val usageByPackage = aggregateForegroundUsage(startMs, endMs)
+        val hidden = appRuleDao.getHiddenPackages().toSet()
 
         usageByPackage
             .filterValues { it > 0L }
-            .filterKeys { it != context.packageName }
+            .filterKeys { it != context.packageName && it !in hidden }
             .forEach { (packageName, foregroundMs) ->
                 val appName = runCatching {
                     packageManager.getApplicationLabel(

@@ -68,6 +68,18 @@ class AppLimitsViewModel @Inject constructor(
         }
     }
 
+    fun toggleHidden(rule: AppRule) {
+        viewModelScope.launch {
+            appRuleDao.upsert(rule.copy(isHidden = !rule.isHidden))
+        }
+    }
+
+    fun toggleAppLock(rule: AppRule) {
+        viewModelScope.launch {
+            appRuleDao.upsert(rule.copy(appLockEnabled = !rule.appLockEnabled))
+        }
+    }
+
     fun deleteRule(packageName: String) {
         viewModelScope.launch {
             appRuleDao.deleteByPackage(packageName)

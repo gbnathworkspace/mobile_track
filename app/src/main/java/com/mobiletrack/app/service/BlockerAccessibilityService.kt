@@ -9,9 +9,13 @@ import com.mobiletrack.app.data.local.dao.AppUsageDao
 import com.mobiletrack.app.data.local.dao.UnlockDao
 import com.mobiletrack.app.data.local.entity.AppOpenEvent
 import com.mobiletrack.app.data.local.entity.AppUsageSession
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.IntentFilter
 import com.mobiletrack.app.data.preferences.UserPreferences
 import com.mobiletrack.app.presentation.blocked.AppBlockedActivity
 import com.mobiletrack.app.presentation.blocked.ScrollReminderActivity
+import com.mobiletrack.app.presentation.pin.AppLockUnlockActivity
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
@@ -27,6 +31,12 @@ class BlockerAccessibilityService : AccessibilityService() {
     @Inject lateinit var appOpenEventDao: AppOpenEventDao
     @Inject lateinit var unlockDao: UnlockDao
     @Inject lateinit var userPreferences: UserPreferences
+
+    private val screenOffReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            AppLockUnlockActivity.unlockedPackages.clear()
+        }
+    }
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
@@ -51,20 +61,24 @@ class BlockerAccessibilityService : AccessibilityService() {
     // --- Burst scroll detection: 20 scrolls in 5 minutes ---
     private val scrollTimestamps = mutableListOf<Long>()
     private val BURST_SCROLL_LIMIT = 20
-    private val BURST_WINDOW_MS = 5 * 60 * 1000L // 5 minutes
+    private val BURST_WINDOW_MS = 5 * 60 * 1000L
     private var lastBurstReminderAt = 0L
-    private val BURST_REMINDER_COOLDOWN_MS = 60_000L // 1 minute between reminders
+    private val BURST_REMINDER_COOLDOWN_MS = 60_000L
 
     // --- Temporary app lock after burst/quiet hours (5 minutes) ---
-    // Maps packageName -> unlock timestamp (when the lock expires)
     private val tempLockedApps = mutableMapOf<String, Long>()
-    private val TEMP_LOCK_DURATION_MS = 5 * 60 * 1000L // 5 minutes
+    private val TEMP_LOCK_DURATION_MS = 5 * 60 * 1000L
 
-    // --- Quiet hours: morning & late night scroll prohibition ---
-    private val QUIET_HOURS_NIGHT_START = 22  // 10 PM
-    private val QUIET_HOURS_MORNING_END = 7   // 7 AM
+    // --- Quiet hours ---
+    private val QUIET_HOURS_NIGHT_START = 22
+    private val QUIET_HOURS_MORNING_END = 7
     private var lastQuietHoursReminderAt = 0L
-    private val QUIET_HOURS_REMINDER_COOLDOWN_MS = 30_000L // 30 seconds between reminders
+    private val QUIET_HOURS_REMINDER_COOLDOWN_MS = 30_000L
+
+    override fun onServiceConnected() {
+        super.onServiceConnected()
+        registerReceiver(screenOffReceiver, IntentFilter(Intent.ACTION_SCREEN_OFF))
+    }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
         when (event.eventType) {
@@ -237,7 +251,20 @@ class BlockerAccessibilityService : AccessibilityService() {
             return
         }
 
-        // Time limit check — query fresh totalMinutes from DB (kept up-to-date by UsageTracker).
+        // App-lock (PIN) — gate after blocking, before time limits
+        if (rule.appLockEnabled &&
+            packageName !in AppLockUnlockActivity.unlockedPackages &&
+            userPreferences.appLockPinEnabled.first()
+        ) {
+            val intent = Intent(this, AppLockUnlockActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                putExtra(AppLockUnlockActivity.EXTRA_PACKAGE, packageName)
+                putExtra(AppLockUnlockActivity.EXTRA_APP_NAME, rule.appName)
+            }
+            startActivity(intent)
+            return
+        }
+
         if (rule.dailyLimitMinutes > 0) {
             val today = dateFormat.format(Date())
             val totalMinutes = appUsageDao.getSessionForApp(packageName, today)?.totalMinutes ?: 0
@@ -296,6 +323,7 @@ class BlockerAccessibilityService : AccessibilityService() {
     }
 
     override fun onDestroy() {
+        runCatching { unregisterReceiver(screenOffReceiver) }
         scope.cancel()
         super.onDestroy()
     }

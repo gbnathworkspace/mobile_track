@@ -25,6 +25,45 @@ class UserPreferences @Inject constructor(
         val UNLOCK_THEME = stringPreferencesKey("unlock_theme")
         val DISABLED_PURPOSES = stringSetPreferencesKey("disabled_purposes")
         val PURPOSE_HINTS_JSON = stringPreferencesKey("purpose_hints_json")
+        val APP_ENTRY_PIN_HASH = stringPreferencesKey("app_entry_pin_hash")
+        val APP_ENTRY_PIN_SALT = stringPreferencesKey("app_entry_pin_salt")
+        val APP_LOCK_PIN_HASH = stringPreferencesKey("app_lock_pin_hash")
+        val APP_LOCK_PIN_SALT = stringPreferencesKey("app_lock_pin_salt")
+    }
+
+    val appEntryPinHash: Flow<String?> = context.dataStore.data.map { it[Keys.APP_ENTRY_PIN_HASH] }
+    val appEntryPinSalt: Flow<String?> = context.dataStore.data.map { it[Keys.APP_ENTRY_PIN_SALT] }
+    val appLockPinHash: Flow<String?> = context.dataStore.data.map { it[Keys.APP_LOCK_PIN_HASH] }
+    val appLockPinSalt: Flow<String?> = context.dataStore.data.map { it[Keys.APP_LOCK_PIN_SALT] }
+    val appEntryPinEnabled: Flow<Boolean> = context.dataStore.data.map { !it[Keys.APP_ENTRY_PIN_HASH].isNullOrBlank() }
+    val appLockPinEnabled: Flow<Boolean> = context.dataStore.data.map { !it[Keys.APP_LOCK_PIN_HASH].isNullOrBlank() }
+
+    suspend fun setAppEntryPin(hash: String, salt: String) {
+        context.dataStore.edit {
+            it[Keys.APP_ENTRY_PIN_HASH] = hash
+            it[Keys.APP_ENTRY_PIN_SALT] = salt
+        }
+    }
+
+    suspend fun clearAppEntryPin() {
+        context.dataStore.edit {
+            it.remove(Keys.APP_ENTRY_PIN_HASH)
+            it.remove(Keys.APP_ENTRY_PIN_SALT)
+        }
+    }
+
+    suspend fun setAppLockPin(hash: String, salt: String) {
+        context.dataStore.edit {
+            it[Keys.APP_LOCK_PIN_HASH] = hash
+            it[Keys.APP_LOCK_PIN_SALT] = salt
+        }
+    }
+
+    suspend fun clearAppLockPin() {
+        context.dataStore.edit {
+            it.remove(Keys.APP_LOCK_PIN_HASH)
+            it.remove(Keys.APP_LOCK_PIN_SALT)
+        }
     }
 
     val maxUnlocksPerDay: Flow<Int> = context.dataStore.data.map {

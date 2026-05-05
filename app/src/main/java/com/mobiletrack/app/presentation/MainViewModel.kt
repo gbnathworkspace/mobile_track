@@ -10,4 +10,5 @@ class MainViewModel @Inject constructor(
     private val userPreferences: UserPreferences
 ) : ViewModel() {
     val onboardingComplete = userPreferences.onboardingComplete
+    val appEntryPinEnabled = userPreferences.appEntryPinEnabled
 }

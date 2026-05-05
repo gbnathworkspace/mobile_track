@@ -10,5 +10,7 @@ data class AppRule(
     val dailyLimitMinutes: Int = 0,   // 0 = no limit
     val dailyScrollLimit: Int = 0,    // 0 = no scroll limit
     val isBlocked: Boolean = false,
-    val blockedDuringFocus: Boolean = false
+    val blockedDuringFocus: Boolean = false,
+    val isHidden: Boolean = false,
+    val appLockEnabled: Boolean = false
 )

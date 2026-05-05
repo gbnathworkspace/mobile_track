@@ -30,6 +30,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.mobiletrack.app.data.local.entity.AppRule
+import com.mobiletrack.app.presentation.pin.userPreferences
 
 // ── Colors (consistent with Dashboard/Reports) ──────────────────────────────
 private val BgGradient = Brush.verticalGradient(
@@ -52,6 +53,7 @@ fun AppLimitsScreen(
 ) {
     val rules by viewModel.allRules.collectAsStateWithLifecycle(emptyList())
     val installedApps by viewModel.installedApps.collectAsStateWithLifecycle()
+    val appLockPinEnabled by userPreferences().appLockPinEnabled.collectAsStateWithLifecycle(false)
     var showAddDialog by remember { mutableStateOf(false) }
 
     Box(
@@ -164,7 +166,16 @@ fun AppLimitsScreen(
                 items(rules) { rule ->
                     AppRuleCard(
                         rule = rule,
+                        appLockPinSet = appLockPinEnabled,
                         onToggleBlock = { viewModel.toggleBlock(rule) },
+                        onToggleHidden = { viewModel.toggleHidden(rule) },
+                        onToggleAppLock = {
+                            if (!appLockPinEnabled && !rule.appLockEnabled) {
+                                navController.navigate("security")
+                            } else {
+                                viewModel.toggleAppLock(rule)
+                            }
+                        },
                         onDelete = { viewModel.deleteRule(rule.packageName) }
                     )
                 }
@@ -189,7 +200,10 @@ fun AppLimitsScreen(
 @Composable
 private fun AppRuleCard(
     rule: AppRule,
+    appLockPinSet: Boolean,
     onToggleBlock: () -> Unit,
+    onToggleHidden: () -> Unit,
+    onToggleAppLock: () -> Unit,
     onDelete: () -> Unit
 ) {
     val statusColor = when {
@@ -244,11 +258,47 @@ private fun AppRuleCard(
                                 color = AccentRed
                             )
                         }
+                        if (rule.isHidden) {
+                            MiniTag(
+                                icon = Icons.Outlined.VisibilityOff,
+                                text = "Hidden",
+                                color = TextMuted
+                            )
+                        }
+                        if (rule.appLockEnabled) {
+                            MiniTag(
+                                icon = Icons.Outlined.Lock,
+                                text = "PIN-locked",
+                                color = AccentBlue
+                            )
+                        }
                     }
                 }
 
                 // Action buttons
                 Row {
+                    GlassIconButton(onClick = onToggleHidden, size = 36.dp) {
+                        Icon(
+                            if (rule.isHidden) Icons.Outlined.Visibility else Icons.Outlined.VisibilityOff,
+                            contentDescription = if (rule.isHidden) "Unhide" else "Hide",
+                            tint = TextMuted,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    GlassIconButton(onClick = onToggleAppLock, size = 36.dp) {
+                        Icon(
+                            if (rule.appLockEnabled) Icons.Default.Lock else Icons.Default.LockOpen,
+                            contentDescription = if (rule.appLockEnabled) "Remove app-lock" else "App-lock",
+                            tint = when {
+                                rule.appLockEnabled -> AccentBlue
+                                appLockPinSet -> TextMuted
+                                else -> TextMuted.copy(alpha = 0.5f)
+                            },
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                    Spacer(Modifier.width(8.dp))
                     GlassIconButton(
                         onClick = onToggleBlock,
                         size = 36.dp

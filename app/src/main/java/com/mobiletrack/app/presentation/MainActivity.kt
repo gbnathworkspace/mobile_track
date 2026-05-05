@@ -37,12 +37,17 @@ class MainActivity : ComponentActivity() {
         setContent {
             MobileTrackTheme(darkTheme = true) {
                 val onboardingComplete by viewModel.onboardingComplete.collectAsStateWithLifecycle(null)
+                val pinEnabled by viewModel.appEntryPinEnabled.collectAsStateWithLifecycle(null)
                 val navController = rememberNavController()
 
-                // Wait until the preference is loaded before rendering NavHost
-                if (onboardingComplete == null) return@MobileTrackTheme
+                // Wait until the preferences are loaded before rendering NavHost
+                if (onboardingComplete == null || pinEnabled == null) return@MobileTrackTheme
 
-                val startDestination = if (onboardingComplete == true) Screen.Dashboard.route else Screen.Onboarding.route
+                val startDestination = when {
+                    onboardingComplete != true -> Screen.Onboarding.route
+                    pinEnabled == true -> Screen.PinGate.route
+                    else -> Screen.Dashboard.route
+                }
 
                 val bottomNavItems = listOf(
                     BottomNavItem(Screen.Dashboard, Icons.Default.Home, "Dashboard"),

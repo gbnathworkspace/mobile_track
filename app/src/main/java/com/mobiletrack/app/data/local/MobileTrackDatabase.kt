@@ -41,13 +41,19 @@ val MIGRATION_3_4 = object : Migration(3, 4) {
             )
             """.trimIndent()
         )
-        // Add unique index to prevent future duplicates
         db.execSQL(
             """
             CREATE UNIQUE INDEX IF NOT EXISTS index_app_usage_sessions_packageName_date
             ON app_usage_sessions (packageName, date)
             """.trimIndent()
         )
+    }
+}
+
+val MIGRATION_4_5 = object : Migration(4, 5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE app_rules ADD COLUMN isHidden INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE app_rules ADD COLUMN appLockEnabled INTEGER NOT NULL DEFAULT 0")
     }
 }
 
@@ -59,7 +65,7 @@ val MIGRATION_3_4 = object : Migration(3, 4) {
         FocusSession::class,
         AppOpenEvent::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class MobileTrackDatabase : RoomDatabase() {
